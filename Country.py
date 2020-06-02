@@ -1,7 +1,7 @@
 class Country:
 
   #initilize country class
-  def __init__(self, name, game_map, x, y, continent, soldiers = 0, neighbours = None, ruler = None):
+  def __init__(self, name, game_map, x, y, continent, soldiers = 1, neighbours = None, ruler = None):
     self.name = name
     self.soldiers = soldiers
     if neighbours:

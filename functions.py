@@ -1,5 +1,7 @@
 import pygame
 import numpy as np
+import random
+import copy
 #from Map import Map
 
 
@@ -30,6 +32,61 @@ def map_to_array(my_map, ai_player, player2, player3):
 
   return out
 
+def six_player_map_to_array(my_map, ai_player, player_list):
+  out = []
+  for country in my_map.nodes():
+    if country.getRuler() == ai_player:
+      out.append(1.0)
+      out.append(0.0)
+      out.append(0.0)
+      out.append(0.0)
+      out.append(0.0)
+      out.append(0.0)
+      
+    elif country.getRuler() == player_list[0]:
+      out.append(0.0)
+      out.append(1.0)
+      out.append(0.0)
+      out.append(0.0)
+      out.append(0.0)
+      out.append(0.0)
+    
+    elif country.getRuler() == player_list[1]:
+      out.append(0.0)
+      out.append(0.0)
+      out.append(1.0)
+      out.append(0.0)
+      out.append(0.0)
+      out.append(0.0)
+    
+    elif country.getRuler() == player_list[2]:
+      out.append(0.0)
+      out.append(0.0)
+      out.append(0.0)
+      out.append(1.0)
+      out.append(0.0)
+      out.append(0.0)
+
+    elif country.getRuler() == player_list[3]:
+      out.append(0.0)
+      out.append(0.0)
+      out.append(0.0)
+      out.append(0.0)
+      out.append(1.0)
+      out.append(0.0)
+
+    else:
+      out.append(0.0)
+      out.append(0.0)
+      out.append(0.0)
+      out.append(0.0)
+      out.append(0.0)
+      out.append(1.0)
+    
+    out.append(country.getSoldiers()/50)
+
+  return out 
+
 def list_to_attack(my_list,my_map,player):
   no_move = True
   counter = 0
@@ -39,15 +96,129 @@ def list_to_attack(my_list,my_map,player):
     for i in range(len(my_list)):
       if my_list[argmax] < my_list[i]:
         argmax = i
-
-    if edges[argmax][0].getRuler() == player:
-      player.attack(edges[argmax][0],edges[argmax][1])
+    """
+    if edges[argmax][0].getRuler() == player and edges[argmax][1].getRuler() != player:
+      attack = player.attack(edges[argmax][0],edges[argmax][1])
+      return attack
       no_move = False
     else:
-      my_list[argmax] = -1.0
+      my_list[argmax] = -100.0
+    """
+    attack = player.attack(edges[argmax][0],edges[argmax][1])
+    return attack
+    no_move = False
 
     if counter == len(my_list):
       break
     else:
       counter +=1
 
+def list_to_fortify(my_list,my_map,player):
+  no_move = True
+  counter = 0
+  while no_move:
+    argmax = 0
+    edges = my_map.edges()
+    for i in range(len(my_list)):
+      if my_list[argmax] < my_list[i]:
+        argmax = i
+
+    fortify_move = player.fortify_(edges[argmax][0],edges[argmax][1])
+
+    if fortify_move:
+      return fortify_move
+      no_move = False
+    else:
+      my_list[argmax] = -100.0
+
+    if counter == len(my_list):
+      break
+    else:
+      counter +=1
+
+def list_to_draft(my_list,my_map,player,num_soldiers):
+  no_move = True
+  counter = 0
+  while no_move:
+    argmax = 0
+    nodes = my_map.nodes()
+    for i in range(len(my_list)):
+      if my_list[argmax] < my_list[i]:
+        argmax = i
+        
+    if nodes[argmax].getRuler() == player:
+      nodes[argmax].setSoldiers(nodes[argmax].getSoldiers() + num_soldiers)
+      return nodes[argmax]
+    else:
+      my_list[argmax] = -100.0
+
+    if counter == len(my_list):
+      break
+    else:
+      counter +=1
+
+def indexs_to_lists(list_of_indexs, length):
+    list_of_lists = []
+    for i in list_of_indexs:
+        new_list = []
+        for j in range(length):
+            if i == j:
+                new_list.append(1.0)
+            else:
+                new_list.append(0.0)
+        list_of_lists.append(new_list)
+    return list_of_lists
+
+#Helper function for playTrainingGame()
+def training_game_attack(player, player_list,network,map_list,move_list,attack_list,random_pc,my_map):
+
+    player_list.remove(player)
+    loop = True
+    map_list.append(six_player_map_to_array(my_map,player,player_list))
+    if random.randint(0,100) < random_pc:
+      attack = player.random_attack()
+    else:
+      pred = network.predict([six_player_map_to_array(my_map,player, player_list)])
+      attack = list_to_attack(list(pred[0]),my_map,player)
+
+    if not attack:
+      del map_list[-1]
+    else:
+      move_list.append(attack_list.index(attack))
+      
+
+    player_list.append(player)
+
+#Helper function for playTrainingGame()
+
+def training_game_fortify(player, player_list,network,map_list,move_list,attack_list,random_pc,my_map):
+  
+  player_list.remove(player)
+  
+  map_list.append(six_player_map_to_array(my_map,player,player_list))
+  if random.randint(0,100) < random_pc:
+    fortify_move = player.fortify_random()
+  else:
+    pred = network.predict([six_player_map_to_array(my_map,player,player_list)])
+    fortify_move = list_to_fortify(list(pred[0]),my_map,player)
+                  
+  if not fortify_move:
+    del map_list[-1]
+  else:
+    move_list.append(attack_list.index(fortify_move))
+  
+  player_list.append(player)
+
+def training_game_draft(player, player_list,network,map_list,move_list,random_pc,country_list,my_map):
+  player_list.remove(player)
+  map_list.append(six_player_map_to_array(my_map,player,player_list))
+  
+
+  if random.randint(0,100) < random_pc:
+    draft_move = player.place_reward_random()
+  else:
+    pred = network.predict([six_player_map_to_array(my_map,player,player_list)])
+    draft_move = list_to_draft(list(pred[0]),my_map,player,player.calc_reward())
+            
+  move_list.append(country_list.index(draft_move))
+  player_list.append(player)

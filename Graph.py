@@ -36,9 +36,9 @@ class Graph:
 
     def nodes(self):
         """Return the set of all nodes in the graph."""
-        result = set()
+        result = list()
         for node in self.graph:
-            result.add(node)
+            result.append(node)
         return result
 
     def edges(self):
