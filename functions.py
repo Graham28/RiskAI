@@ -2,6 +2,7 @@ import pygame
 import numpy as np
 import random
 import copy
+import Player
 #from Map import Map
 
 
@@ -113,17 +114,19 @@ def list_to_attack(my_list,my_map,player):
     else:
       counter +=1
 
-def list_to_fortify(my_list,my_map,player):
+def list_to_fortify(my_list,my_map,player,fortify_options):
   no_move = True
   counter = 0
   while no_move:
     argmax = 0
-    edges = my_map.edges()
+    fortify_options
     for i in range(len(my_list)):
       if my_list[argmax] < my_list[i]:
         argmax = i
-
-    fortify_move = player.fortify_(edges[argmax][0],edges[argmax][1])
+    if player.is_connected(fortify_options[argmax][0],fortify_options[argmax][1]):
+      fortify_move = player.fortify_(fortify_options[argmax][0],fortify_options[argmax][1])
+    else:
+      fortify_move = None
 
     if fortify_move:
       return fortify_move
@@ -178,7 +181,7 @@ def training_game_attack(player, player_list,network,map_list,move_list,attack_l
     if random.randint(0,100) < random_pc:
       attack = player.random_attack()
     else:
-      pred = network.predict([six_player_map_to_array(my_map,player, player_list)])
+      pred = network.predict([six_player_map_to_array(my_map,player, player_list)],batch_size=1)
       attack = list_to_attack(list(pred[0]),my_map,player)
 
     if not attack:
@@ -199,8 +202,8 @@ def training_game_fortify(player, player_list,network,map_list,move_list,attack_
   if random.randint(0,100) < random_pc:
     fortify_move = player.fortify_random()
   else:
-    pred = network.predict([six_player_map_to_array(my_map,player,player_list)])
-    fortify_move = list_to_fortify(list(pred[0]),my_map,player)
+    pred = network.predict([six_player_map_to_array(my_map,player,player_list)],batch_size=1)
+    fortify_move = list_to_fortify(list(pred[0]),my_map,player,attack_list)
                   
   if not fortify_move:
     del map_list[-1]
@@ -217,7 +220,7 @@ def training_game_draft(player, player_list,network,map_list,move_list,random_pc
   if random.randint(0,100) < random_pc:
     draft_move = player.place_reward_random()
   else:
-    pred = network.predict([six_player_map_to_array(my_map,player,player_list)])
+    pred = network.predict([six_player_map_to_array(my_map,player,player_list)],batch_size=1)
     draft_move = list_to_draft(list(pred[0]),my_map,player,player.calc_reward())
             
   move_list.append(country_list.index(draft_move))

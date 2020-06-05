@@ -35,6 +35,13 @@ class Map(Graph):
 
     attack_list = self.edges()
     country_list = self.nodes()
+    fortify_list = []
+
+    for n in self.nodes():
+      for c in self.nodes():
+        if n != c:
+          fortify_list.append([c,n])
+
 
     permanent_player_list = [p for p in self.player_list]
     temp_player_list = [p for p in self.player_list]
@@ -53,7 +60,7 @@ class Map(Graph):
         draft = False
 
       if fortify:
-        training_game_fortify(current_player, temp_player_list,fortify_network,fortify_maps[permanent_player_list.index(current_player)],fortify_moves[permanent_player_list.index(current_player)],attack_list,current_player.getRandomness(),self)
+        training_game_fortify(current_player, temp_player_list,fortify_network,fortify_maps[permanent_player_list.index(current_player)],fortify_moves[permanent_player_list.index(current_player)],fortify_list,current_player.getRandomness(),self)
         fortify = False
         draft = True
 
@@ -70,9 +77,9 @@ class Map(Graph):
       turn += 1
       #if turn%1000 == 0:
       #  print(turn)
-      if turn > 8000:
+      if turn > 10000:
         return None
-    return (attack_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(attacks_moves[permanent_player_list.index(self.player_list[0])],len(attack_list)),fortify_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(fortify_moves[permanent_player_list.index(self.player_list[0])],len(attack_list)),draft_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(draft_moves[permanent_player_list.index(self.player_list[0])],len(country_list)),self.player_list[0].getRandomness())
+    return (attack_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(attacks_moves[permanent_player_list.index(self.player_list[0])],len(attack_list)),fortify_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(fortify_moves[permanent_player_list.index(self.player_list[0])],len(fortify_list)),draft_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(draft_moves[permanent_player_list.index(self.player_list[0])],len(country_list)),self.player_list[0].getRandomness())
     
 
 
@@ -169,6 +176,13 @@ class Map(Graph):
   def playAiGame2(self,network, fortify_network, ai_player,draft_network,display):
     permanent_player_list = [p for p in self.player_list]
     temp_player_list = [t for t in self.player_list]   
+    fortify_list = []
+
+    for n in self.nodes():
+      for c in self.nodes():
+        if n != c:
+          fortify_list.append([c,n])
+
     if display:
       pygame.init()
 
@@ -200,7 +214,7 @@ class Map(Graph):
           pred = fortify_network.predict([six_player_map_to_array(self,ai_player,permanent_player_list)])
           permanent_player_list.append(ai_player)
         
-          list_to_fortify(list(pred[0]),self,ai_player)
+          list_to_fortify(list(pred[0]),self,ai_player,fortify_list)
         else:
           current_player.fortify_random()
         fortify = False
@@ -455,7 +469,7 @@ def build_simple_six_map():
 def build_full_map():
 
   my_map = Map()
-  gradient_of_randomness = [0,100,100,100,100,100]
+  gradient_of_randomness = [100,100,100,100,50,20]
   random.shuffle(gradient_of_randomness)
   Player1 = Player('ai_player', my_map,gradient_of_randomness[0])
   Player2 = Player('player2', my_map,gradient_of_randomness[1])

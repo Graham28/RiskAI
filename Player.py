@@ -38,7 +38,7 @@ class Player:
       self.attacked_last_move = True
       if len(victim.getRuler().getCountries()) == 0:
         self.map.removePlayer(victim.getRuler())
-        print('DIED')
+        #print('DIED')
       victim.setRuler(self)
       victim.setSoldiers((attack_from.getSoldiers() - 1)-int(num_victim*0.7))
       attack_from.setSoldiers(1)
@@ -145,24 +145,23 @@ class Player:
   def fortify_random(self):
     fortify_list = []
     for c in self.countries:
-      for n in c.getNeighbours():
-        if not n.getEnemyNeighbour():
+      for n in self.countries:
+        #if n != c and self.is_connected(n,c):
+        if n != c:
           fortify_list.append([c,n])
     
     if len(fortify_list) > 0:
       chosen_pair = fortify_list[random.randint(0,len(fortify_list)-1)]
-      self.fortify_(chosen_pair[0],chosen_pair[1])
+      if self.is_connected(chosen_pair[0],chosen_pair[1]):
+        self.fortify_(chosen_pair[0],chosen_pair[1])
       return chosen_pair
     else:
       return
 
   def fortify_(self,country1,country2):
-    if self.is_connected(country1, country2):
-      country1.setSoldiers(country1.getSoldiers() + country2.getSoldiers() - 1)
-      country2.setSoldiers(1)
-      return [country1,country2]
-    else:
-      return None
+    country1.setSoldiers(country1.getSoldiers() + country2.getSoldiers() - 1)
+    country2.setSoldiers(1)
+    return [country1,country2]
 
   def is_connected(self, country1, country2):
     """
