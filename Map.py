@@ -469,7 +469,7 @@ def build_simple_six_map():
 def build_full_map():
 
   my_map = Map()
-  gradient_of_randomness = [100,100,100,100,50,20]
+  gradient_of_randomness = [100,100,100,100,80,20]
   random.shuffle(gradient_of_randomness)
   Player1 = Player('ai_player', my_map,gradient_of_randomness[0])
   Player2 = Player('player2', my_map,gradient_of_randomness[1])

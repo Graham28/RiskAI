@@ -132,6 +132,8 @@ def list_to_fortify(my_list,my_map,player,fortify_options):
       return fortify_move
       no_move = False
     else:
+      return None #test
+      no_move = False #test
       my_list[argmax] = -100.0
 
     if counter == len(my_list):

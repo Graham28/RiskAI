@@ -60,7 +60,7 @@ def full_train():
 
     draft_model.compile(optimizer='adam',loss='mean_squared_error',metrics=['accuracy'])
 
-    for i in range(5):
+    for i in range(20):
         data = None
         while data == None:
             my_map = build_full_map()
