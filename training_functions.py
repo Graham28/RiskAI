@@ -9,7 +9,7 @@ import numpy as np
 
 def full_train():
     model = tf.keras.models.Sequential()
-    model.add(tf.keras.Input(shape=(294)))  
+    model.add(tf.keras.Input(shape=(300)))  
     model.add(tf.keras.layers.Dense(2048, activation='relu'))
     model.add(tf.keras.layers.Dense(2048, activation='relu'))
     model.add(tf.keras.layers.Dropout(0.2))
@@ -29,7 +29,7 @@ def full_train():
     model.compile(optimizer='adam',loss='mean_squared_error',metrics=['accuracy'])
 
     fortify_model = tf.keras.models.Sequential()
-    fortify_model.add(tf.keras.Input(shape=(294)))  
+    fortify_model.add(tf.keras.Input(shape=(300)))  
     fortify_model.add(tf.keras.layers.Dense(2048, activation='relu'))
     fortify_model.add(tf.keras.layers.Dense(2048, activation='relu'))
     fortify_model.add(tf.keras.layers.Dropout(0.2))
@@ -45,7 +45,7 @@ def full_train():
     fortify_model.compile(optimizer='adam',loss='mean_squared_error',metrics=['accuracy'])
 
     draft_model = tf.keras.models.Sequential()
-    draft_model.add(tf.keras.Input(shape=(294)))  
+    draft_model.add(tf.keras.Input(shape=(300)))  
     draft_model.add(tf.keras.layers.Dense(2048, activation='relu'))
     draft_model.add(tf.keras.layers.Dense(2048, activation='relu'))
     draft_model.add(tf.keras.layers.Dropout(0.2))
@@ -60,7 +60,7 @@ def full_train():
 
     draft_model.compile(optimizer='adam',loss='mean_squared_error',metrics=['accuracy'])
 
-    for i in range(20):
+    for i in range(2):
         data = None
         while data == None:
             my_map = build_full_map()
@@ -74,7 +74,7 @@ def full_train():
         d_x_train = np.asarray(data[4])
         d_y_train = np.asarray(data[5])
 
-        for j in range(100):
+        for j in range(1):
             if j%10 == 0:
                 print(str(j) + '%')
             my_map = build_full_map()
@@ -87,6 +87,10 @@ def full_train():
                 f_y_train = np.concatenate((f_y_train,np.asarray(data[3])),axis=0)
                 d_x_train = np.concatenate((d_x_train,np.asarray(data[4])),axis=0)
                 d_y_train = np.concatenate((d_y_train,np.asarray(data[5])),axis=0)
+        
+        performance_checker(model,fortify_model,draft_model)
+        
+
     
 
 
@@ -98,3 +102,21 @@ def full_train():
     
     return [model,fortify_model,draft_model]
     
+
+
+def performance_checker(attack_model,fortify_model,draft_model):
+    count = 0
+    total = 6
+    ai_name = 'ai_player'
+    
+    for i in range(total):
+        test_map = build_full_map()
+        for player in test_map.getPlayerList():
+            if player.getName() == ai_name:
+                ai_player = player
+     
+        if test_map.playAiGame2(attack_model,fortify_model,ai_player,draft_model,False) == ai_name:
+            count += 1
+    f = open("performance.txt", "a")
+    f.write('\n' + str((count*6)/total))
+    f.close()

@@ -35,6 +35,54 @@ def map_to_array(my_map, ai_player, player2, player3):
 
 def six_player_map_to_array(my_map, ai_player, player_list):
   out = []
+  if my_map.getLastAttacker() == ai_player:
+    out.append(1.0)
+    out.append(0.0)
+    out.append(0.0)
+    out.append(0.0)
+    out.append(0.0)
+    out.append(0.0)
+    
+  elif my_map.getLastAttacker() == player_list[0]:
+    out.append(0.0)
+    out.append(1.0)
+    out.append(0.0)
+    out.append(0.0)
+    out.append(0.0)
+    out.append(0.0)
+  
+  elif my_map.getLastAttacker() == player_list[1]:
+    out.append(0.0)
+    out.append(0.0)
+    out.append(1.0)
+    out.append(0.0)
+    out.append(0.0)
+    out.append(0.0)
+  
+  elif my_map.getLastAttacker() == player_list[2]:
+    out.append(0.0)
+    out.append(0.0)
+    out.append(0.0)
+    out.append(1.0)
+    out.append(0.0)
+    out.append(0.0)
+
+  elif my_map.getLastAttacker() == player_list[3]:
+    out.append(0.0)
+    out.append(0.0)
+    out.append(0.0)
+    out.append(0.0)
+    out.append(1.0)
+    out.append(0.0)
+
+  else:
+    out.append(0.0)
+    out.append(0.0)
+    out.append(0.0)
+    out.append(0.0)
+    out.append(0.0)
+    out.append(1.0)
+
   for country in my_map.nodes():
     if country.getRuler() == ai_player:
       out.append(1.0)
@@ -106,6 +154,8 @@ def list_to_attack(my_list,my_map,player):
       my_list[argmax] = -100.0
     """
     attack = player.attack(edges[argmax][0],edges[argmax][1])
+    #if attack[0].getRuler() != player or victim.getRuler() ==player:
+
     return attack
     no_move = False
 
@@ -179,17 +229,24 @@ def training_game_attack(player, player_list,network,map_list,move_list,attack_l
 
     player_list.remove(player)
     loop = True
-    map_list.append(six_player_map_to_array(my_map,player,player_list))
-    if random.randint(0,100) < random_pc:
-      attack = player.random_attack()
-    else:
-      pred = network.predict([six_player_map_to_array(my_map,player, player_list)],batch_size=1)
-      attack = list_to_attack(list(pred[0]),my_map,player)
 
-    if not attack:
-      del map_list[-1]
-    else:
-      move_list.append(attack_list.index(attack))
+    attack_count = 0
+    while True:
+      map_list.append(six_player_map_to_array(my_map,player,player_list))
+      if random.randint(0,100) < random_pc:
+        attack = player.random_attack()
+      else:
+        pred = network.predict([six_player_map_to_array(my_map,player, player_list)],batch_size=1)
+        attack = list_to_attack(list(pred[0]),my_map,player)
+
+      if attack == None or attack_count == 10:
+        del map_list[-1]
+        break
+      else:
+        move_list.append(attack_list.index(attack))
+        attack_count += 1
+
+    
       
 
     player_list.append(player)

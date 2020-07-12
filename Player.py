@@ -43,6 +43,7 @@ class Player:
       victim.setSoldiers((attack_from.getSoldiers() - 1)-int(num_victim*0.7))
       attack_from.setSoldiers(1)
       self.addCountry(victim)
+      self.map.setLastAttacker(self)
       #print(self.name + ' now has control over ' + victim.getName() + '.')
 
     else:
@@ -77,11 +78,13 @@ class Player:
       reward = 3
       self.cards += 1
     else:
-      reward = 0
-      self.cards = 0
+      reward = 3
+      #self.cards = 0
     if self.cards == 3:
       reward += 7
       self.cards = 0
+    
+    self.attacked_last_move = False
 
     continent_list_keys = self.continents_dict.keys()
     for key in continent_list_keys:
@@ -115,7 +118,7 @@ class Player:
       for n in neighbours:
         if n.getRuler() != self and c.getSoldiers() > 1:
           attack_list.append([c,n])
-    if len(attack_list) == 0:
+    if len(attack_list) == 0 or random.randint(1,10) < 3:
       return None
     else:
       x = random.randint(0, len(attack_list)-1)

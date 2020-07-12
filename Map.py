@@ -12,6 +12,13 @@ class Map(Graph):
   def __init__(self):
    super().__init__()
    self.player_list = []
+   self.last_successful_attacker = None
+  
+  def setLastAttacker(self,player):
+    self.last_successful_attacker = player
+
+  def getLastAttacker(self):
+    return self.last_successful_attacker
 
   def makeNeighbours(self, country1, country2):
     self.add_edge(country1,country2)
@@ -51,7 +58,7 @@ class Map(Graph):
     draft = True
     turn = 0
 
-    while len(self.player_list) > 1:
+    while len(self.player_list) > 2:
       
       if draft:
         current_player = self.player_list[player]
@@ -77,7 +84,7 @@ class Map(Graph):
       turn += 1
       #if turn%1000 == 0:
       #  print(turn)
-      if turn > 10000:
+      if turn > 5000:
         return None
     return (attack_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(attacks_moves[permanent_player_list.index(self.player_list[0])],len(attack_list)),fortify_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(fortify_moves[permanent_player_list.index(self.player_list[0])],len(fortify_list)),draft_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(draft_moves[permanent_player_list.index(self.player_list[0])],len(country_list)),self.player_list[0].getRandomness())
     
@@ -191,10 +198,10 @@ class Map(Graph):
     fortify = False
     draft = True
     count = 0
-    while len(self.player_list) > 3 and run:
+    while len(self.player_list) > 1 and run:
       if draft:
         count += 1
-        if count == 500:
+        if count == 1000:
           run = False
         #print(count)  
         current_player = self.player_list[player]
@@ -237,15 +244,22 @@ class Map(Graph):
 
         draft = False
       else:
-        if current_player == ai_player:
-          permanent_player_list.remove(ai_player)
-          #print('map')
-          pred = network.predict([six_player_map_to_array(self,ai_player,permanent_player_list)])
-          permanent_player_list.append(ai_player)
-        
-          list_to_attack(list(pred[0]),self,ai_player)
-        else:
-          current_player.random_attack()
+        attack_count = 0
+        while True:
+          if current_player == ai_player:
+            permanent_player_list.remove(ai_player)
+            #print('map')
+            pred = network.predict([six_player_map_to_array(self,ai_player,permanent_player_list)])
+            permanent_player_list.append(ai_player)
+          
+            attack = list_to_attack(list(pred[0]),self,ai_player)
+          else:
+            attack = current_player.random_attack()
+
+          if attack == None or attack_count == 10:
+            break
+          
+          attack_count += 1
 
         fortify = True
 
@@ -255,6 +269,7 @@ class Map(Graph):
         pygame.display.update()
       
     if display:
+      print(count)
       while run:
         for event in pygame.event.get():
           if event.type == pygame.QUIT:
@@ -262,7 +277,6 @@ class Map(Graph):
         if display:
           win = pygame.display.set_mode((700,700))
           pygame.display.set_caption('Risk')
-          pygame.time.delay(2500)
         
         if player < len(self.player_list) - 1:
           player += 1
@@ -275,6 +289,10 @@ class Map(Graph):
     print(count)
     if display:
       pygame.quit()
+    
+    if run == False:
+      return ''
+    return self.player_list[0].getName()
 
 
 
@@ -330,7 +348,7 @@ class Map(Graph):
         if display:
           win = pygame.display.set_mode((700,700))
           pygame.display.set_caption('Risk')
-          pygame.time.delay(2500)
+          pygame.time.delay(500)
         
         if player < len(self.player_list) - 1:
           player += 1
@@ -460,7 +478,7 @@ def build_simple_six_map():
 
   #for node in my_map.nodes():
   #  node.setSoldiers(random.randint(1,6))
-  for i in range(8):
+  for i in range(16):
     for player in Player_list:
       player.place_random_soldier()
 
@@ -619,6 +637,7 @@ def build_full_map():
   my_map.makeNeighbours(western_australia,new_guinea)
   my_map.makeNeighbours(western_australia,eastern_australia)
   my_map.makeNeighbours(eastern_australia,new_guinea)
+
 
 
   """
