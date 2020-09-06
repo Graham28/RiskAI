@@ -145,24 +145,31 @@ def list_to_attack(my_list,my_map,player):
     for i in range(len(my_list)):
       if my_list[argmax] < my_list[i]:
         argmax = i
-    """
-    if edges[argmax][0].getRuler() == player and edges[argmax][1].getRuler() != player:
+
+    if argmax == len(edges):
+      attack = None
+      no_move = False
+    
+    elif edges[argmax][0].getRuler() == player and edges[argmax][1].getRuler() != player:
       attack = player.attack(edges[argmax][0],edges[argmax][1])
       return attack
       no_move = False
     else:
       my_list[argmax] = -100.0
     """
-    attack = player.attack(edges[argmax][0],edges[argmax][1])
+    if argmax == len(edges):
+      attack = None
+    else:
+      attack = player.attack(edges[argmax][0],edges[argmax][1])
+    """
     #if attack[0].getRuler() != player or victim.getRuler() ==player:
 
-    return attack
-    no_move = False
 
     if counter == len(my_list):
       break
     else:
       counter +=1
+  return attack
 
 def list_to_fortify(my_list,my_map,player,fortify_options):
   no_move = True
@@ -173,23 +180,26 @@ def list_to_fortify(my_list,my_map,player,fortify_options):
     for i in range(len(my_list)):
       if my_list[argmax] < my_list[i]:
         argmax = i
-    if player.is_connected(fortify_options[argmax][0],fortify_options[argmax][1]):
-      fortify_move = player.fortify_(fortify_options[argmax][0],fortify_options[argmax][1])
+    if argmax == len(my_list) - 1:
+      return None
     else:
-      fortify_move = None
+      if player.is_connected(fortify_options[argmax][0],fortify_options[argmax][1]):
+        fortify_move = player.fortify_(fortify_options[argmax][0],fortify_options[argmax][1])
+      else:
+        fortify_move = None
 
-    if fortify_move:
-      return fortify_move
-      no_move = False
-    else:
-      return None #test
-      no_move = False #test
-      my_list[argmax] = -100.0
+      if fortify_move:
+        return fortify_move
+        no_move = False
+      else:
+        return None #test
+        no_move = False #test
+        #my_list[argmax] = -100.0
 
-    if counter == len(my_list):
-      break
-    else:
-      counter +=1
+      if counter == len(my_list):
+        break
+      else:
+        counter +=1
 
 def list_to_draft(my_list,my_map,player,num_soldiers):
   no_move = True
@@ -240,7 +250,8 @@ def training_game_attack(player, player_list,network,map_list,move_list,attack_l
         attack = list_to_attack(list(pred[0]),my_map,player)
 
       if attack == None or attack_count == 10:
-        del map_list[-1]
+        #del map_list[-1]
+        move_list.append(len(attack_list))
         break
       else:
         move_list.append(attack_list.index(attack))
@@ -265,7 +276,8 @@ def training_game_fortify(player, player_list,network,map_list,move_list,attack_
     fortify_move = list_to_fortify(list(pred[0]),my_map,player,attack_list)
                   
   if not fortify_move:
-    del map_list[-1]
+    #del map_list[-1]
+    move_list.append(len(attack_list))
   else:
     move_list.append(attack_list.index(fortify_move))
   

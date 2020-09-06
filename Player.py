@@ -27,7 +27,8 @@ class Player:
   def attack(self,attack_from, victim):
     #print(self.name + ' attacked ' + victim.getRuler().getName() + ' in ' + victim.getName() + '.')
     if attack_from.getRuler() != self or victim.getRuler() ==self:
-      return [attack_from,victim]
+      #return [attack_from,victim]
+      return None
     num_victim = victim.getSoldiers()
     if num_victim > attack_from.getSoldiers() - 1:
       victim.setSoldiers(num_victim-(attack_from.getSoldiers()-1))
@@ -115,9 +116,10 @@ class Player:
     attack_list = []
     for c in self.countries:
       neighbours = c.getNeighbours()
-      for n in neighbours:
-        if n.getRuler() != self and c.getSoldiers() > 1:
-          attack_list.append([c,n])
+      if c.getSoldiers() > 1:
+        for n in neighbours:
+          if n.getRuler() != self:
+            attack_list.append([c,n])
     if len(attack_list) == 0 or random.randint(1,10) < 3:
       return None
     else:

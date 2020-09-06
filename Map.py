@@ -58,7 +58,7 @@ class Map(Graph):
     draft = True
     turn = 0
 
-    while len(self.player_list) > 2:
+    while len(self.player_list) > 1:
       
       if draft:
         current_player = self.player_list[player]
@@ -84,9 +84,9 @@ class Map(Graph):
       turn += 1
       #if turn%1000 == 0:
       #  print(turn)
-      if turn > 5000:
+      if turn > 3000:
         return None
-    return (attack_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(attacks_moves[permanent_player_list.index(self.player_list[0])],len(attack_list)),fortify_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(fortify_moves[permanent_player_list.index(self.player_list[0])],len(fortify_list)),draft_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(draft_moves[permanent_player_list.index(self.player_list[0])],len(country_list)),self.player_list[0].getRandomness())
+    return (attack_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(attacks_moves[permanent_player_list.index(self.player_list[0])],len(attack_list) +1),fortify_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(fortify_moves[permanent_player_list.index(self.player_list[0])],len(fortify_list) + 1),draft_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(draft_moves[permanent_player_list.index(self.player_list[0])],len(country_list)),self.player_list[0].getRandomness())
     
 
 
@@ -487,7 +487,7 @@ def build_simple_six_map():
 def build_full_map():
 
   my_map = Map()
-  gradient_of_randomness = [100,100,100,100,80,20]
+  gradient_of_randomness = [100,100,100,100,100,100]
   random.shuffle(gradient_of_randomness)
   Player1 = Player('ai_player', my_map,gradient_of_randomness[0])
   Player2 = Player('player2', my_map,gradient_of_randomness[1])
