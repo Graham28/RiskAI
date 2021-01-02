@@ -5,6 +5,7 @@ import copy
 from Player import Player
 from Country import Country
 import random
+import time
 
 class Map(Graph):
   
@@ -29,7 +30,9 @@ class Map(Graph):
     self.player_list.append(player)
 
 
-  def playTrainingGame3(self,attack_network,fortify_network,draft_network):
+  def playTrainingGame(self,attack_network,fortify_network,draft_network, self_play=False):
+    attack_count = 0 #test
+
     attacks_moves = [[],[],[],[],[],[]]
     attack_maps = [[],[],[],[],[],[]]
 
@@ -57,9 +60,10 @@ class Map(Graph):
     fortify = False
     draft = True
     turn = 0
+    #print('test1')
 
     while len(self.player_list) > 1:
-      
+      #print(turn)
       if draft:
         current_player = self.player_list[player]
         training_game_draft(current_player, temp_player_list,draft_network,draft_maps[permanent_player_list.index(current_player)],draft_moves[permanent_player_list.index(current_player)],current_player.getRandomness(),country_list,self)
@@ -78,109 +82,33 @@ class Map(Graph):
           player = 0
 
       else:
-        training_game_attack(current_player, temp_player_list,attack_network,attack_maps[permanent_player_list.index(current_player)],attacks_moves[permanent_player_list.index(current_player)],attack_list,current_player.getRandomness(),self)
+        attack_count += 1
+        training_game_attack(current_player, temp_player_list,attack_network,attack_maps[permanent_player_list.index(current_player)],attacks_moves[permanent_player_list.index(current_player)],attack_list,current_player.getRandomness(),self,self_play)
         fortify = True
       
       turn += 1
+
       #if turn%1000 == 0:
-      #  print(turn)
-      if turn > 3000:
-        return None
-    return (attack_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(attacks_moves[permanent_player_list.index(self.player_list[0])],len(attack_list) +1),fortify_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(fortify_moves[permanent_player_list.index(self.player_list[0])],len(fortify_list) + 1),draft_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(draft_moves[permanent_player_list.index(self.player_list[0])],len(country_list)),self.player_list[0].getRandomness())
+      #print(turn)
+      if turn > 800:
+        #print('Not')
+        if self_play:
+          max_countries = 0
+          best_player = permanent_player_list[0]
+          for player in permanent_player_list:
+            if player.getRandomness() < 100:
+              if len(player.getCountries()) > max_countries:
+                max_countries = len(player.getCountries())
+                best_player = player
+          return (attack_maps[permanent_player_list.index(best_player)],attacks_moves[permanent_player_list.index(best_player)],fortify_maps[permanent_player_list.index(best_player)],indexs_to_lists(fortify_moves[permanent_player_list.index(best_player)],len(fortify_list) + 1),draft_maps[permanent_player_list.index(best_player)],indexs_to_lists(draft_moves[permanent_player_list.index(best_player)],len(country_list)),best_player.getRandomness())
+        else:
+          return None
+    #print('finish')
+    return (attack_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(attacks_moves[permanent_player_list.index(self.player_list[0])],len(attack_list) + 1),fortify_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(fortify_moves[permanent_player_list.index(self.player_list[0])],len(fortify_list) + 1),draft_maps[permanent_player_list.index(self.player_list[0])],indexs_to_lists(draft_moves[permanent_player_list.index(self.player_list[0])],len(country_list)),self.player_list[0].getRandomness())
     
 
 
-
-
-  def playAiGame(self,network, fortify_network, ai_player,draft_network,display):
-    permanent_player_list = [p for p in self.player_list]   
-    if display:
-      pygame.init()
-
-    run = True
-    player = 0
-    fortify = False
-    draft = True
-    while len(self.player_list) > 1 and run:
-      if draft:
-        current_player = self.player_list[player]
-      if display:
-        for event in pygame.event.get():
-          if event.type == pygame.QUIT:
-            run = False
-        win = pygame.display.set_mode((700,700))
-        pygame.display.set_caption('Risk')
-        pygame.time.delay(1000)
-
-      if fortify:
-
-        if current_player == ai_player:
-          permanent_player_list.remove(ai_player)
-          #print('map')
-          pred = fortify_network.predict([map_to_array(self,ai_player,permanent_player_list[0],permanent_player_list[1])])
-          permanent_player_list.append(ai_player)
-        
-          list_to_fortify(list(pred[0]),self,ai_player)
-        else:
-          current_player.fortify_random()
-        fortify = False
-        draft = True
-
-        if player < len(self.player_list) - 1:
-          player += 1
-
-        else:
-          player = 0
-      elif draft:
-        if current_player == ai_player:
-          pred = draft_network.predict([map_to_array(self,current_player,permanent_player_list[0],permanent_player_list[1])])
-          draft_move = list_to_draft(list(pred[0]),self,current_player,current_player.calc_reward())
-
-        else:
-          current_player.place_reward_random()
-
-        draft = False
-      else:
-        if current_player == ai_player:
-          permanent_player_list.remove(ai_player)
-          #print('map')
-          pred = network.predict([map_to_array(self,ai_player,permanent_player_list[0],permanent_player_list[1])])
-          permanent_player_list.append(ai_player)
-        
-          list_to_attack(list(pred[0]),self,ai_player)
-        else:
-          current_player.random_attack()
-
-        fortify = True
-
-
-      if display:    
-        self.drawMap(win)
-        pygame.display.update()
-      
-    if display:
-      while run:
-        for event in pygame.event.get():
-          if event.type == pygame.QUIT:
-            run = False
-        if display:
-          win = pygame.display.set_mode((700,700))
-          pygame.display.set_caption('Risk')
-          pygame.time.delay(2500)
-        
-        if player < len(self.player_list) - 1:
-          player += 1
-        else:
-          player = 0
-        if display:    
-          self.drawMap(win)
-          pygame.display.update()
-    print(self.player_list[0].getName())
-    print(len(self.player_list))  
-    if display:
-      pygame.quit()
-
-  def playAiGame2(self,network, fortify_network, ai_player,draft_network,display):
+  def playAiGame(self,network, fortify_network, ai_player,draft_network,display,full_map = True):
     permanent_player_list = [p for p in self.player_list]
     temp_player_list = [t for t in self.player_list]   
     fortify_list = []
@@ -190,10 +118,16 @@ class Map(Graph):
         if n != c:
           fortify_list.append([c,n])
 
+    run = True
+
     if display:
       pygame.init()
+      win = self.pygame_start(1,run)
+      self.drawMap(win)
+      time.sleep(2)
+      
 
-    run = True
+    
     player = 0
     fortify = False
     draft = True
@@ -202,26 +136,20 @@ class Map(Graph):
       if draft:
         count += 1
         if count == 1000:
-          run = False
-        #print(count)  
+          run = False 
         current_player = self.player_list[player]
-      if display:
-        for event in pygame.event.get():
-          if event.type == pygame.QUIT:
-            run = False
-        win = pygame.display.set_mode((700,700))
-        pygame.display.set_caption('Risk')
-        pygame.time.delay(1)
+      
 
       if fortify:
-
-        if current_player == ai_player:
-          permanent_player_list.remove(ai_player)
-          #print('map')
-          pred = fortify_network.predict([six_player_map_to_array(self,ai_player,permanent_player_list)])
-          permanent_player_list.append(ai_player)
+        if current_player == ai_player or current_player.getRandomness() < random.randint(0,99):
+          permanent_player_list.remove(current_player)
+          if full_map:
+            pred = fortify_network.predict([six_player_map_to_array(self,current_player,permanent_player_list)])
+          else:
+            pred = fortify_network.predict([map_to_array(self,current_player,permanent_player_list)])
+          permanent_player_list.append(current_player)
         
-          list_to_fortify(list(pred[0]),self,ai_player,fortify_list)
+          list_to_fortify(list(pred[0]),self,current_player,fortify_list)
         else:
           current_player.fortify_random()
         fortify = False
@@ -232,29 +160,51 @@ class Map(Graph):
 
         else:
           player = 0
+
+        if display:
+            win = self.pygame_start(1,run)
+            time.sleep(3)
+            self.drawMap(win,current_player.getName() + ' ' + 'fortified')
+
+        
       elif draft:
-        if current_player == ai_player:
-          permanent_player_list.remove(ai_player)
-          pred = draft_network.predict([six_player_map_to_array(self,current_player,permanent_player_list)])
-          permanent_player_list.append(ai_player)
+        if current_player == ai_player or current_player.getRandomness() < random.randint(0,99):
+          permanent_player_list.remove(current_player)
+          if full_map:
+            pred = draft_network.predict([six_player_map_to_array(self,current_player,permanent_player_list)])
+          else:
+            pred = draft_network.predict([map_to_array(self,current_player,permanent_player_list)])
+          permanent_player_list.append(current_player)
           draft_move = list_to_draft(list(pred[0]),self,current_player,current_player.calc_reward())
 
         else:
           current_player.place_reward_random()
 
         draft = False
+        if display:
+            win = self.pygame_start(1,run)
+            time.sleep(3)
+            self.drawMap(win,current_player.getName() + ' ' + 'drafted')
       else:
         attack_count = 0
         while True:
-          if current_player == ai_player:
-            permanent_player_list.remove(ai_player)
+          if current_player == ai_player or current_player.getRandomness() < random.randint(0,99):
+            permanent_player_list.remove(current_player)
             #print('map')
-            pred = network.predict([six_player_map_to_array(self,ai_player,permanent_player_list)])
-            permanent_player_list.append(ai_player)
+            if full_map:
+              pred = network.predict([six_player_map_to_array(self,current_player,permanent_player_list)])
+            else:
+              pred = network.predict([map_to_array(self,current_player,permanent_player_list)])
+            permanent_player_list.append(current_player)
           
-            attack = list_to_attack(list(pred[0]),self,ai_player)
+            attack = list_to_attack(list(pred[0]),self,current_player)
           else:
             attack = current_player.random_attack()
+          
+          if display:
+            win = self.pygame_start(1,run)
+            time.sleep(3)
+            self.drawMap(win,current_player.getName() + ' ' + 'attacked' + ' ' + str(attack_count + 1))
 
           if attack == None or attack_count == 10:
             break
@@ -264,9 +214,6 @@ class Map(Graph):
         fortify = True
 
 
-      if display:    
-        self.drawMap(win)
-        pygame.display.update()
       
     if display:
       print(count)
@@ -283,8 +230,8 @@ class Map(Graph):
         else:
           player = 0
         if display:    
-          self.drawMap(win)
-          pygame.display.update()
+          self.drawMap(win, current_player.getName() + ' ' + 'wins')
+          #pygame.display.update()
     print(self.player_list[0].getName())
     print(count)
     if display:
@@ -294,6 +241,15 @@ class Map(Graph):
       return ''
     return self.player_list[0].getName()
 
+  
+  def pygame_start(self,delay,run):
+    for event in pygame.event.get():
+      if event.type == pygame.QUIT:
+        run = False
+      win = pygame.display.set_mode((700,700))
+      pygame.display.set_caption('Risk')
+      pygame.time.delay(delay)
+      return win
 
 
 
@@ -311,12 +267,7 @@ class Map(Graph):
       if draft:
         current_player = self.player_list[player]
       if display:
-        for event in pygame.event.get():
-          if event.type == pygame.QUIT:
-            run = False
-        win = pygame.display.set_mode((700,700))
-        pygame.display.set_caption('Risk')
-        pygame.time.delay(2000)
+        pygame_start(2000)
 
       if fortify:
         current_player.fortify_random()
@@ -372,51 +323,55 @@ class Map(Graph):
 
   def getPlayerList(self): return self.player_list
 
-  def drawMap(self,window):
-   w, h = 700,700
-   for edge in self.edges():
-     draw_connection(grid_to_coordinates(edge[0].getX(), edge[0].getY(), w, h),grid_to_coordinates(edge[1].getX(), edge[1].getY(), w, h),window)
-   for node in self.nodes():
-    if not node.getRuler():
-      player_colour = (255,255,255)
-    elif node.getRuler().getIndex() == 0:
-      player_colour = (0,255,0)
-    elif node.getRuler().getIndex() == 1:
-      player_colour = (255,0,255)
-    elif node.getRuler().getIndex() == 2:
-      player_colour = (0,0,255)
-    elif node.getRuler().getIndex() == 3:
-      player_colour = (255,0,0)
-    elif node.getRuler().getIndex() == 4:
-      player_colour = (255,255,0)
-    elif node.getRuler().getIndex() == 5:
-      player_colour = (0,255,255)
-    else:
-      player_colour = (255,255,255)
+  def drawMap(self,window, text_display = ""):
+    window.fill((0,0,0))
+    w, h = 700,700
+    for edge in self.edges():
+      draw_connection(grid_to_coordinates(edge[0].getX(), edge[0].getY(), w, h),grid_to_coordinates(edge[1].getX(), edge[1].getY(), w, h),window)
+    for node in self.nodes():
+      if not node.getRuler():
+        player_colour = (255,255,255)
+      elif node.getRuler().getIndex() == 0:
+        player_colour = (0,255,0)
+      elif node.getRuler().getIndex() == 1:
+        player_colour = (255,0,255)
+      elif node.getRuler().getIndex() == 2:
+        player_colour = (0,0,255)
+      elif node.getRuler().getIndex() == 3:
+        player_colour = (255,0,0)
+      elif node.getRuler().getIndex() == 4:
+        player_colour = (255,255,0)
+      elif node.getRuler().getIndex() == 5:
+        player_colour = (0,255,255)
+      else:
+        player_colour = (255,255,255)
 
-    if node.getContinent()[0] == 0:
-      colour = (0,0,255)
-    elif node.getContinent()[0] == 1:
-      colour = (255,0,0)
-    elif node.getContinent()[0] == 2:
-      colour = (0,255,0)
-    elif node.getContinent()[0] == 3:
-      colour = (255,255,0)
-    elif node.getContinent()[0] == 4:
-      colour = (0,255,255)
-    elif node.getContinent()[0] == 5:
-      colour = (255,0,255)
-    else:
-      colour = (255,255,255)
-    position_list = list(grid_to_coordinates(node.getX(),node.getY(),700,700))
-    position_tuple = (position_list[0]-5,position_list[1]-10) 
+      if node.getContinent()[0] == 0:
+        colour = (0,0,255)
+      elif node.getContinent()[0] == 1:
+        colour = (255,0,0)
+      elif node.getContinent()[0] == 2:
+        colour = (0,255,0)
+      elif node.getContinent()[0] == 3:
+        colour = (255,255,0)
+      elif node.getContinent()[0] == 4:
+        colour = (0,255,255)
+      elif node.getContinent()[0] == 5:
+        colour = (255,0,255)
+      else:
+        colour = (255,255,255)
+      position_list = list(grid_to_coordinates(node.getX(),node.getY(),700,700))
+      position_tuple = (position_list[0]-5,position_list[1]-10) 
 
-    pygame.draw.circle(window, colour, grid_to_coordinates(node.getX(),node.getY(),700,700), 30)
-    pygame.draw.circle(window, player_colour, grid_to_coordinates(node.getX(),node.getY(),700,700), 25)
+      pygame.draw.circle(window, colour, grid_to_coordinates(node.getX(),node.getY(),700,700), 30)
+      pygame.draw.circle(window, player_colour, grid_to_coordinates(node.getX(),node.getY(),700,700), 25)
 
-    font = pygame.font.SysFont(None,30)
-    window.blit(font.render(str(node.getSoldiers()), True, (0,0,0)), position_tuple)
-
+      font = pygame.font.SysFont(None,30)
+      window.blit(font.render(str(node.getSoldiers()), True, (0,0,0)), position_tuple)
+    
+    window.blit(font.render(text_display, True, (255,255,255)), (25,10))
+    pygame.display.update()
+    
 
 
 
@@ -484,17 +439,16 @@ def build_simple_six_map():
 
   return my_map
 
-def build_full_map():
-
+def build_full_map(r = 100):
   my_map = Map()
-  gradient_of_randomness = [100,100,100,100,100,100]
+  gradient_of_randomness = [r,r,r,r,r,r]
   random.shuffle(gradient_of_randomness)
-  Player1 = Player('ai_player', my_map,gradient_of_randomness[0])
+  Player1 = Player('ai_player', my_map,gradient_of_randomness[1])
   Player2 = Player('player2', my_map,gradient_of_randomness[1])
   Player3 = Player('player3', my_map,gradient_of_randomness[2])
-  Player4 = Player('player4', my_map,gradient_of_randomness[3])
-  Player5 = Player('player5', my_map,gradient_of_randomness[4])
-  Player6 = Player('player6', my_map,gradient_of_randomness[5])
+  Player4 = Player('player4', my_map,100)
+  Player5 = Player('player5', my_map,100)
+  Player6 = Player('player6', my_map,100)
   Player1.resetPlayerIndex()
   Player_list = my_map.getPlayerList()
 
@@ -674,7 +628,7 @@ def build_full_map():
 
   #for node in my_map.nodes():
   #  node.setSoldiers(random.randint(1,6))
-  for i in range(5):
+  for i in range(28):
     for player in Player_list:
       player.place_random_soldier()
 
@@ -682,12 +636,12 @@ def build_full_map():
 
 
 
-def build_simple_map():
+def build_simple_map(ai_randomness = 100):
 
   my_map = Map()
-  Player1 = Player('ai_player', my_map)
-  Player2 = Player('player2', my_map)
-  Player3 = Player('player3', my_map)
+  Player1 = Player('ai_player', my_map, ai_randomness)
+  Player2 = Player('player2', my_map, 100)
+  Player3 = Player('player3', my_map, 100)
   Player1.resetPlayerIndex()
   Player_list = my_map.getPlayerList()
   ireland = Country('ireland', my_map,5,5,(1,2,3))

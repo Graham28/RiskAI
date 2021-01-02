@@ -13,14 +13,16 @@ def draw_connection(country1,country2,window):
   pygame.draw.line(window,(255,255,255),country1,country2)
 
 
-def map_to_array(my_map, ai_player, player2, player3):
+def map_to_array(my_map, ai_player, player_list):
   out = []
+  temp_player_list = copy.deepcopy(player_list)
+
   for country in my_map.nodes():
     if country.getRuler() == ai_player:
       out.append(1.0)
       out.append(0.0)
       out.append(0.0)
-    elif country.getRuler() == player2:
+    elif country.getRuler() == temp_player_list[0]:
       out.append(0.0)
       out.append(1.0)
       out.append(0.0)
@@ -146,14 +148,20 @@ def list_to_attack(my_list,my_map,player):
       if my_list[argmax] < my_list[i]:
         argmax = i
 
-    if argmax == len(edges):
+
+    if argmax == len(my_list) - 1:
+      return None
+
+    elif edges[argmax] == -100.0:
       attack = None
       no_move = False
     
-    elif edges[argmax][0].getRuler() == player and edges[argmax][1].getRuler() != player:
+    elif edges[argmax][0].getRuler() == player and edges[argmax][1].getRuler() != player and edges[argmax][0].getSoldiers() != 1:
+      
       attack = player.attack(edges[argmax][0],edges[argmax][1])
       return attack
       no_move = False
+
     else:
       my_list[argmax] = -100.0
     """
@@ -162,10 +170,11 @@ def list_to_attack(my_list,my_map,player):
     else:
       attack = player.attack(edges[argmax][0],edges[argmax][1])
     """
-    #if attack[0].getRuler() != player or victim.getRuler() ==player:
+    #if attack[0].getRuler() != player or victim.getRuler() == player:
 
 
     if counter == len(my_list):
+      return None
       break
     else:
       counter +=1
@@ -228,6 +237,9 @@ def indexs_to_lists(list_of_indexs, length):
         new_list = []
         for j in range(length):
             if i == j:
+              if j == length - 1:
+                new_list.append(0.006)
+              else:
                 new_list.append(1.0)
             else:
                 new_list.append(0.0)
@@ -235,26 +247,57 @@ def indexs_to_lists(list_of_indexs, length):
     return list_of_lists
 
 #Helper function for playTrainingGame()
-def training_game_attack(player, player_list,network,map_list,move_list,attack_list,random_pc,my_map):
+def training_game_attack(player, player_list,network,map_list,move_list,attack_list,random_pc,my_map,self_play=False):
 
     player_list.remove(player)
     loop = True
 
     attack_count = 0
     while True:
-      map_list.append(six_player_map_to_array(my_map,player,player_list))
-      if random.randint(0,100) < random_pc:
+      if len(player_list) == 2:
+        map_list.append(map_to_array(my_map,player,player_list))
+      else:
+        map_list.append(six_player_map_to_array(my_map,player,player_list))
+
+      random_num = random.randint(0,99) 
+
+      if random_num < random_pc:
+        attack_was_random = True
         attack = player.random_attack()
       else:
-        pred = network.predict([six_player_map_to_array(my_map,player, player_list)],batch_size=1)
+        attack_was_random = False
+        if len(player_list) == 2:
+          pred = network.predict([map_to_array(my_map,player, player_list)],batch_size=1)
+        else:
+          pred = network.predict([six_player_map_to_array(my_map,player, player_list)],batch_size=1)
+          #print(pred)
         attack = list_to_attack(list(pred[0]),my_map,player)
 
-      if attack == None or attack_count == 10:
-        #del map_list[-1]
-        move_list.append(len(attack_list))
+      #if attack == None or attack_count == 10:
+      if attack_count == 3:
+        if self_play and not attack_was_random:
+          move_list.append(pred[0].tolist())
+        else:
+          if attack != None:
+            move_list.append(attack_list.index(attack))
+          else:
+            move_list.append(len(attack_list))
+            #del map_list[-1]
         break
+
+      elif attack == None:
+        if self_play and not attack_was_random:
+          move_list.append(pred[0].tolist())
+        else:
+          move_list.append(len(attack_list))
+          #del map_list[-1]
+        attack_count += 1
+
       else:
-        move_list.append(attack_list.index(attack))
+        if self_play and not attack_was_random:
+          move_list.append(pred[0].tolist())
+        else:
+          move_list.append(attack_list.index(attack))
         attack_count += 1
 
     
@@ -267,12 +310,20 @@ def training_game_attack(player, player_list,network,map_list,move_list,attack_l
 def training_game_fortify(player, player_list,network,map_list,move_list,attack_list,random_pc,my_map):
   
   player_list.remove(player)
-  
-  map_list.append(six_player_map_to_array(my_map,player,player_list))
-  if random.randint(0,100) < random_pc:
+  if len(player_list) == 2:
+    map_list.append(map_to_array(my_map,player,player_list))
+  else:
+    map_list.append(six_player_map_to_array(my_map,player,player_list))
+        
+  #if random.randint(0,100) < random_pc:
+  if True:
     fortify_move = player.fortify_random()
   else:
-    pred = network.predict([six_player_map_to_array(my_map,player,player_list)],batch_size=1)
+    if len(player_list) == 2:
+      pred = network.predict([map_to_array(my_map,player, player_list)],batch_size=1)
+    else:
+      pred = network.predict([six_player_map_to_array(my_map,player, player_list)],batch_size=1)
+
     fortify_move = list_to_fortify(list(pred[0]),my_map,player,attack_list)
                   
   if not fortify_move:
@@ -285,13 +336,23 @@ def training_game_fortify(player, player_list,network,map_list,move_list,attack_
 
 def training_game_draft(player, player_list,network,map_list,move_list,random_pc,country_list,my_map):
   player_list.remove(player)
-  map_list.append(six_player_map_to_array(my_map,player,player_list))
+  
+  if len(player_list) == 2:
+    map_list.append(map_to_array(my_map,player,player_list))
+  else:
+    map_list.append(six_player_map_to_array(my_map,player,player_list))
+        
   
 
-  if random.randint(0,100) < random_pc:
+  #if random.randint(0,100) < random_pc:
+  if True:
     draft_move = player.place_reward_random()
   else:
-    pred = network.predict([six_player_map_to_array(my_map,player,player_list)],batch_size=1)
+    if len(player_list) == 2:
+      pred = network.predict([map_to_array(my_map,player, player_list)],batch_size=1)
+    else:
+      pred = network.predict([six_player_map_to_array(my_map,player, player_list)],batch_size=1)
+
     draft_move = list_to_draft(list(pred[0]),my_map,player,player.calc_reward())
             
   move_list.append(country_list.index(draft_move))

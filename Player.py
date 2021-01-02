@@ -11,7 +11,7 @@ class Player:
       self.countries = []
     self.name = name
     self.map = game_map
-    self.randomness = randomness
+    self.randomness = randomness #0-100, 100 most random
     self.index = copy.deepcopy(Player.player_index)
     Player.player_index += 1
     self.map.addPlayer(self)
@@ -38,8 +38,8 @@ class Player:
       victim.getRuler().removeCountry(victim)
       self.attacked_last_move = True
       if len(victim.getRuler().getCountries()) == 0:
+        self.cards += victim.getRuler().getCards()
         self.map.removePlayer(victim.getRuler())
-        #print('DIED')
       victim.setRuler(self)
       victim.setSoldiers((attack_from.getSoldiers() - 1)-int(num_victim*0.7))
       attack_from.setSoldiers(1)
@@ -80,10 +80,15 @@ class Player:
       self.cards += 1
     else:
       reward = 3
-      #self.cards = 0
-    if self.cards == 3:
+
+    if self.cards >= 3:
       reward += 7
-      self.cards = 0
+      self.cards = self.cards - 3
+
+    if len(self.getCountries())//3 <= 3:
+      reward += 3
+    else:
+      reward += (len(self.getCountries())//3)
     
     self.attacked_last_move = False
 
@@ -125,8 +130,6 @@ class Player:
     else:
       x = random.randint(0, len(attack_list)-1)
       self.attack(attack_list[x][0],attack_list[x][1])
-      if random.randint(0,1) == 1:
-        self.random_attack()
       return attack_list[x] 
 
   def fortify(self):
@@ -213,6 +216,8 @@ class Player:
   def getCountries(self): return self.countries
 
   def getName(self): return self.name
+
+  def getCards(self): return self.cards
 
   def getIndex(self): return self.index
 
